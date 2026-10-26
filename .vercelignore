@@ -1,0 +1,4 @@
+scratch
+scratch-test-*.js
+.env*
+!.env.example
