@@ -543,12 +543,22 @@ export default function ClientDetailPage() {
         setClient(updated);
         setEditData(updated);
 
-        setSaveResultMsg({
-          type: 'success',
-          text: data.googleUpdated
-            ? 'Ficha e alterações atualizadas no Google Meu Negócio com sucesso! 🎉'
-            : 'Dados da ficha salvos no sistema com sucesso!',
-        });
+        if (data.googleUpdated) {
+          setSaveResultMsg({
+            type: 'success',
+            text: 'Ficha e alterações atualizadas no Google Meu Negócio com sucesso! 🎉',
+          });
+        } else if (data.googleWarning) {
+          setSaveResultMsg({
+            type: 'warning',
+            text: `Dados salvos localmente, mas o Google reportou: ${data.googleWarning}`,
+          });
+        } else {
+          setSaveResultMsg({
+            type: 'success',
+            text: 'Dados da ficha salvos no sistema com sucesso!',
+          });
+        }
       } else {
         setSaveResultMsg({
           type: 'error',

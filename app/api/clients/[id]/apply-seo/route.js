@@ -39,8 +39,14 @@ export async function POST(request, { params }) {
     if (description && client.refresh_token && client.google_location_id) {
       try {
         console.log(`[Apply SEO] Updating description for ${client.business_name} in Google...`);
-        await updateBusinessDescription(client.refresh_token, client.google_location_id, description);
-        googleUpdated = true;
+        const gRes = await updateBusinessDescription(client.refresh_token, client.google_location_id, description);
+        if (gRes && gRes.success) {
+          googleUpdated = true;
+        } else {
+          googleUpdated = false;
+          googleError = gRes?.error || 'Falha ao atualizar descrição na API do Google';
+          console.warn(`[Apply SEO Google Warning] ${client.business_name}:`, googleError);
+        }
       } catch (err) {
         console.warn(`[Apply SEO Google Warning] ${client.business_name}:`, err.message);
         googleError = err.message;

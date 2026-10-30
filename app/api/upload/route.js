@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadMediaBuffer } from '@/lib/supabase/storage';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -18,12 +22,29 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
     const mimeType = file.type || 'image/jpeg';
     const filename = file.name || 'upload.jpg';
+    const isVideo = mimeType.startsWith('video/') || Boolean(filename.match(/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i));
 
-    const isVideo = mimeType.startsWith('video/') || filename.match(/\.(mp4|mov|webm|avi)(\?.*)?$/i);
+    // Limit check: 75 MB (Google GBP maximum media upload size)
+    const MAX_SIZE = 75 * 1024 * 1024;
+    if (file.size && file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: 'O arquivo excede o limite máximo de 75 MB aceito pelo Google Meu Negócio.' },
+        { status: 400 }
+      );
+    }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    if (buffer.length > MAX_SIZE) {
+      return NextResponse.json(
+        { error: 'O arquivo excede o limite máximo de 75 MB aceito pelo Google Meu Negócio.' },
+        { status: 400 }
+      );
+    }
+
     const format = isVideo ? 'VIDEO' : 'PHOTO';
 
     const publicUrl = await uploadMediaBuffer(buffer, filename, mimeType, folder);

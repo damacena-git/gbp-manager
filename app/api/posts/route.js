@@ -80,7 +80,10 @@ export async function POST(request) {
 
       const locationName = `accounts/${post.google_account_id}/locations/${post.google_location_id}`;
       const allUrls = post.media_urls || [];
-      const primaryMedia = allUrls.length > 0 ? [{ url: allUrls[0], format: 'PHOTO' }] : [];
+      const primaryMedia = allUrls.length > 0 ? [{
+        url: allUrls[0],
+        format: allUrls[0].match(/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i) ? 'VIDEO' : 'PHOTO'
+      }] : [];
       const googleResult = await createPost(post.refresh_token, locationName, {
         content: post.content,
         topicType: post.topic_type || 'STANDARD',
@@ -181,6 +184,16 @@ export async function POST(request) {
 
       const mediaUrlsSql = formatMediaUrls(sanitizedUrls);
 
+      const callToActionSql = item.call_to_action
+        ? `${escapeLiteral(typeof item.call_to_action === 'string' ? item.call_to_action : JSON.stringify(item.call_to_action))}::jsonb`
+        : 'NULL';
+      const eventDataSql = item.event_data
+        ? `${escapeLiteral(typeof item.event_data === 'string' ? item.event_data : JSON.stringify(item.event_data))}::jsonb`
+        : 'NULL';
+      const offerDataSql = item.offer_data
+        ? `${escapeLiteral(typeof item.offer_data === 'string' ? item.offer_data : JSON.stringify(item.offer_data))}::jsonb`
+        : 'NULL';
+
       const rows = await sql(`
         INSERT INTO public.scheduled_posts (
           client_id, content, media_urls, topic_type, call_to_action,
@@ -191,9 +204,9 @@ export async function POST(request) {
           ${escapeLiteral(item.content.trim())},
           ${mediaUrlsSql},
           ${escapeLiteral(item.topic_type || 'STANDARD')},
-          ${escapeLiteral(item.call_to_action || null)},
-          ${escapeLiteral(item.event_data || null)},
-          ${escapeLiteral(item.offer_data || null)},
+          ${callToActionSql},
+          ${eventDataSql},
+          ${offerDataSql},
           ${escapeLiteral(item.scheduled_for || null)},
           ${escapeLiteral(publishedAt)},
           ${escapeLiteral(googlePostId)},

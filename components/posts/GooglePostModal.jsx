@@ -268,7 +268,15 @@ export default function GooglePostModal({
 
     // Take only the first file (Google strictly accepts 1 media per post)
     const file = fileList[0];
-    const isVideo = file.type.startsWith('video');
+    const isVideo = file.type.startsWith('video') || Boolean(file.name.match(/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i));
+
+    if (isVideo) {
+      if (file.size > 75 * 1024 * 1024) {
+        alert('O vídeo selecionado excede 75 MB. O Google Meu Negócio aceita vídeos de no máximo 75 MB.');
+        return;
+      }
+    }
+
     const previewUrl = URL.createObjectURL(file);
     const newItem = {
       id: `media_${Date.now()}_0`,
@@ -276,10 +284,28 @@ export default function GooglePostModal({
       previewUrl,
       format: isVideo ? 'VIDEO' : 'PHOTO',
       name: file.name,
+      size: file.size,
     };
 
     // Replace any existing media (strictly 1)
     setMediaItems([newItem]);
+
+    // Check video duration if video
+    if (isVideo) {
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'metadata';
+      tempVideo.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(tempVideo.src);
+        const durationSec = Math.round(tempVideo.duration);
+        if (durationSec > 30) {
+          setSubmitFeedback({
+            type: 'warning',
+            message: `Atenção: O vídeo possui ${durationSec}s. O Google Meu Negócio recomenda vídeos de até 30 segundos.`,
+          });
+        }
+      };
+      tempVideo.src = previewUrl;
+    }
   }
 
   function handleSaveEditedMedia(updatedItem) {
@@ -437,9 +463,16 @@ export default function GooglePostModal({
             body: formData,
           });
 
-          const uploadData = await uploadRes.json();
-          if (!uploadRes.ok || uploadData.error) {
-            throw new Error(uploadData.error || 'Falha ao fazer upload da imagem/vídeo');
+          let uploadData = null;
+          try {
+            uploadData = await uploadRes.json();
+          } catch {
+            const errText = await uploadRes.text().catch(() => '');
+            throw new Error(`Falha no upload (${uploadRes.status}): ${errText || 'O arquivo de vídeo/imagem é muito grande para o servidor.'}`);
+          }
+
+          if (!uploadRes.ok || uploadData?.error) {
+            throw new Error(uploadData?.error || 'Falha ao fazer upload da imagem/vídeo');
           }
 
           processedMedia.push({

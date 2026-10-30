@@ -3,9 +3,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X, Crop, RotateCw, RotateCcw, FlipHorizontal, Sun, Contrast,
-  Sparkles, SlidersHorizontal, Check, Undo2, Maximize2, MapPin, Tag, FileText
+  Sparkles, SlidersHorizontal, Check, Undo2, Maximize2, MapPin, Tag, FileText,
+  Navigation, Compass, Crosshair, Globe, Info, CheckCircle2, ShieldCheck
 } from 'lucide-react';
-import { injectExifToDataUrl, getCoordinatesForCity, generateSeoFilename } from '@/lib/seo/photo-optimizer';
+import {
+  injectExifToDataUrl,
+  getCoordinatesForCity,
+  generateSeoFilename,
+  parseClientAddress,
+  BRAZIL_CITIES_COORDS
+} from '@/lib/seo/photo-optimizer';
 
 const ASPECT_RATIOS = [
   { id: '4:3', label: '4:3 (Google Recomendado)', ratio: 4 / 3, badge: 'Ideal para Posts e Perfil' },
@@ -47,11 +54,19 @@ export default function ImageEditorModal({
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
   const [applySeoGeotag, setApplySeoGeotag] = useState(true);
-  const [activeTab, setActiveTab] = useState('crop'); // 'crop' | 'adjust' | 'filters' | 'details'
+  const [activeTab, setActiveTab] = useState('crop'); // 'crop' | 'adjust' | 'filters' | 'gps' | 'details'
   const [fileName, setFileName] = useState('');
   const [altText, setAltText] = useState('');
   const [category, setCategory] = useState('PRODUCT');
   const [processing, setProcessing] = useState(false);
+
+  // GPS & Geo-tagging state
+  const [gpsLat, setGpsLat] = useState('');
+  const [gpsLng, setGpsLng] = useState('');
+  const [gpsCity, setGpsCity] = useState('');
+  const [gpsState, setGpsState] = useState('');
+  const [gpsNeighborhood, setGpsNeighborhood] = useState('');
+  const [includeExifTags, setIncludeExifTags] = useState(true);
 
   const canvasRef = useRef(null);
   const imageObjRef = useRef(null);
@@ -71,6 +86,18 @@ export default function ImageEditorModal({
     setFileName(mediaItem.filename || mediaItem.name || 'foto.jpg');
     setAltText(mediaItem.alt_text || mediaItem.caption || '');
     setCategory(mediaItem.category || 'PRODUCT');
+
+    // Parse and initialize GPS Geotag data from client if available
+    const parsedAddr = parseClientAddress(client?.address);
+    const initialCity = parsedAddr.city || (typeof client?.address === 'string' ? client.address : '') || '';
+    const initialCoords = getCoordinatesForCity(initialCity, parsedAddr.state);
+
+    setGpsCity(initialCity || 'São Paulo');
+    setGpsState(parsedAddr.state || initialCoords.state || 'SP');
+    setGpsNeighborhood(parsedAddr.neighborhood || '');
+    setGpsLat(initialCoords.lat !== undefined ? String(initialCoords.lat) : '-23.5505');
+    setGpsLng(initialCoords.lng !== undefined ? String(initialCoords.lng) : '-46.6333');
+    setApplySeoGeotag(true);
 
     const rawSrc = mediaItem.previewUrl || mediaItem.url;
     if (!rawSrc) return;
@@ -199,6 +226,26 @@ export default function ImageEditorModal({
     setSaturation(100);
   }
 
+  function handleDetectClientCoordinates() {
+    const parsedAddr = parseClientAddress(client?.address);
+    const initialCity = parsedAddr.city || (typeof client?.address === 'string' ? client.address : '') || '';
+    const initialCoords = getCoordinatesForCity(initialCity, parsedAddr.state);
+
+    if (initialCity) setGpsCity(initialCity);
+    if (parsedAddr.state || initialCoords.state) setGpsState(parsedAddr.state || initialCoords.state);
+    if (parsedAddr.neighborhood) setGpsNeighborhood(parsedAddr.neighborhood);
+    if (initialCoords.lat !== undefined) setGpsLat(String(initialCoords.lat));
+    if (initialCoords.lng !== undefined) setGpsLng(String(initialCoords.lng));
+  }
+
+  function handleSelectCityPreset(cityName) {
+    const coords = getCoordinatesForCity(cityName);
+    setGpsCity(cityName.charAt(0).toUpperCase() + cityName.slice(1));
+    setGpsState(coords.state || 'SP');
+    setGpsLat(String(coords.lat));
+    setGpsLng(String(coords.lng));
+  }
+
   async function handleSave() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -208,19 +255,19 @@ export default function ImageEditorModal({
       // 1. Get image as JPEG Data URL at high quality (0.92)
       let dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
-      // 2. Inject Local SEO EXIF Metadata if client has location details & option enabled
-      if (applySeoGeotag && client) {
-        const cityName = client.address?.locality || client.address?.city || '';
-        const stateName = client.address?.administrativeArea || '';
-        const coords = getCoordinatesForCity(cityName, stateName);
+      // 2. Inject Local SEO EXIF Metadata (GPS & Tags)
+      if (applySeoGeotag) {
+        const parsedLat = parseFloat(gpsLat);
+        const parsedLng = parseFloat(gpsLng);
+        const hasValidCoords = !isNaN(parsedLat) && !isNaN(parsedLng);
 
         dataUrl = injectExifToDataUrl(dataUrl, {
-          lat: coords.lat,
-          lng: coords.lng,
-          businessName: client.business_name || '',
-          city: cityName,
-          category: category || client.category || '',
-          altText: altText || `${client.business_name || 'Empresa'} - ${category} em ${cityName || 'Brasil'}`,
+          lat: hasValidCoords ? parsedLat : undefined,
+          lng: hasValidCoords ? parsedLng : undefined,
+          businessName: includeExifTags ? (client?.business_name || '') : '',
+          city: gpsCity,
+          category: category || client?.category || '',
+          altText: altText || `${client?.business_name || 'Empresa'} - ${category} em ${gpsCity || 'Brasil'}`,
         });
       }
 
@@ -246,6 +293,14 @@ export default function ImageEditorModal({
         isEdited: true,
         alt_text: altText,
         category: category,
+        geotagged: applySeoGeotag,
+        gps: applySeoGeotag ? {
+          lat: parseFloat(gpsLat),
+          lng: parseFloat(gpsLng),
+          city: gpsCity,
+          state: gpsState,
+          neighborhood: gpsNeighborhood,
+        } : null,
       };
 
       await onSave(updatedMediaItem);
@@ -347,7 +402,7 @@ export default function ImageEditorModal({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 340px',
+            gridTemplateColumns: '1fr 390px',
             flex: 1,
             overflow: 'hidden',
           }}
@@ -512,13 +567,15 @@ export default function ImageEditorModal({
                 borderRadius: '10px',
                 padding: '3px',
                 border: '1px solid rgba(255, 255, 255, 0.06)',
+                gap: '2px',
               }}
             >
               {[
-                { id: 'crop', label: 'Proporção', icon: Crop },
+                { id: 'crop', label: 'Corte', icon: Crop },
                 { id: 'adjust', label: 'Cores', icon: SlidersHorizontal },
                 { id: 'filters', label: 'Filtros', icon: Sparkles },
-                { id: 'details', label: 'SEO / Legenda', icon: Tag },
+                { id: 'gps', label: 'GPS', icon: MapPin },
+                { id: 'details', label: 'SEO', icon: Tag },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -532,19 +589,20 @@ export default function ImageEditorModal({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      padding: '8px 10px',
+                      gap: '4px',
+                      padding: '7px 6px',
                       borderRadius: '8px',
                       border: 'none',
                       backgroundColor: isActive ? '#3B82F6' : 'transparent',
                       color: isActive ? '#FFFFFF' : '#9CA3AF',
-                      fontSize: '0.78rem',
+                      fontSize: '0.74rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <Icon size={14} />
+                    <Icon size={13} />
                     {tab.label}
                   </button>
                 );
@@ -728,6 +786,258 @@ export default function ImageEditorModal({
               </div>
             )}
 
+            {/* TAB CONTENT: OTIMIZAÇÃO GPS & GEO-TAGGING */}
+            {activeTab === 'gps' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <MapPin size={14} /> Otimização GPS & Metadados
+                  </span>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', color: applySeoGeotag ? '#34D399' : '#9CA3AF', fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      checked={applySeoGeotag}
+                      onChange={(e) => setApplySeoGeotag(e.target.checked)}
+                      style={{ accentColor: '#10B981', width: '15px', height: '15px', cursor: 'pointer' }}
+                    />
+                    {applySeoGeotag ? 'GPS Ativado' : 'GPS Desativado'}
+                  </label>
+                </div>
+
+                {/* Status card */}
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: applySeoGeotag ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.08)',
+                    border: `1px solid ${applySeoGeotag ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.25)'}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <Crosshair size={16} color={applySeoGeotag ? '#34D399' : '#EF4444'} />
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: applySeoGeotag ? '#6EE7B7' : '#FCA5A5' }}>
+                      {applySeoGeotag ? 'Pronto para Gravação no EXIF' : 'Geotagging Desativado'}
+                    </span>
+                  </div>
+                  {applySeoGeotag ? (
+                    <div style={{ fontSize: '0.75rem', color: '#D1D5DB', lineHeight: '1.4' }}>
+                      <div><strong>Coordenadas:</strong> {gpsLat || '0'}, {gpsLng || '0'}</div>
+                      <div><strong>Local:</strong> {gpsNeighborhood ? `${gpsNeighborhood}, ` : ''}{gpsCity || 'Cidade não definida'} - {gpsState || 'BR'}</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
+                      Ative a opção acima para gravar as coordenadas geográficas na imagem.
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto-detect button */}
+                {client && (
+                  <button
+                    type="button"
+                    onClick={handleDetectClientCoordinates}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                      color: '#60A5FA',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Navigation size={13} /> Sincronizar Coordenadas com a Ficha
+                  </button>
+                )}
+
+                {/* Coordinates Fields */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                      Latitude:
+                    </label>
+                    <input
+                      type="text"
+                      value={gpsLat}
+                      onChange={(e) => setGpsLat(e.target.value)}
+                      placeholder="-23.5412"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#F9FAFB',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                      Longitude:
+                    </label>
+                    <input
+                      type="text"
+                      value={gpsLng}
+                      onChange={(e) => setGpsLng(e.target.value)}
+                      placeholder="-47.4431"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#F9FAFB',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* City & State Fields */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                      Cidade / Município:
+                    </label>
+                    <input
+                      type="text"
+                      value={gpsCity}
+                      onChange={(e) => setGpsCity(e.target.value)}
+                      placeholder="Ex: Votorantim"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#F9FAFB',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                      Estado (UF):
+                    </label>
+                    <input
+                      type="text"
+                      value={gpsState}
+                      onChange={(e) => setGpsState(e.target.value.toUpperCase())}
+                      placeholder="SP"
+                      maxLength={2}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#F9FAFB',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bairro / Região */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                    Bairro / Área de Atendimento:
+                  </label>
+                  <input
+                    type="text"
+                    value={gpsNeighborhood}
+                    onChange={(e) => setGpsNeighborhood(e.target.value)}
+                    placeholder="Ex: Parque Bela Vista"
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                      color: '#F9FAFB',
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px', fontWeight: 600 }}>
+                    Atalhos Rápidos de Cidades:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {['Votorantim', 'Sorocaba', 'São Paulo', 'Campinas', 'Curitiba', 'Passo Fundo', 'Rio de Janeiro', 'Brasília'].map((cName) => (
+                      <button
+                        key={cName}
+                        type="button"
+                        onClick={() => handleSelectCityPreset(cName)}
+                        style={{
+                          fontSize: '0.7rem',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                          color: '#D1D5DB',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {cName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional EXIF toggle */}
+                <div style={{ marginTop: '4px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.75rem', color: '#E2E8F0' }}>
+                    <input
+                      type="checkbox"
+                      checked={includeExifTags}
+                      onChange={(e) => setIncludeExifTags(e.target.checked)}
+                      style={{ accentColor: '#10B981', marginTop: '2px', cursor: 'pointer' }}
+                    />
+                    <span>
+                      Injetar dados da empresa (<strong>{client?.business_name || 'Empresa'}</strong>), nicho e palavras-chave de SEO Local nos campos EXIF Artist e Copyright.
+                    </span>
+                  </label>
+                </div>
+
+                {/* Explanatory callout */}
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    fontSize: '0.72rem',
+                    color: '#93C5FD',
+                    lineHeight: '1.4',
+                  }}
+                >
+                  💡 <strong>Por que otimizar o GPS da foto?</strong><br />
+                  O algoritmo do Google Meu Negócio lê as coordenadas GPS gravadas nos metadados da imagem no momento do envio. Fotos geolocalizadas aumentam o ranqueamento da empresa no mapa e comprovam atendimento presencial na região.
+                </div>
+              </div>
+            )}
+
             {/* TAB CONTENT: LEGENDA & CATEGORIA (SEO) */}
             {activeTab === 'details' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -869,38 +1179,37 @@ export default function ImageEditorModal({
               </div>
             )}
 
-            {/* SEO Local Geotagging Switch */}
-            {client && (
-              <div
-                style={{
-                  marginTop: 'auto',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <MapPin size={13} /> Geo-tagging & EXIF SEO
+            {/* Quick GPS Status Pill / Shortcut to GPS Tab */}
+            <div
+              onClick={() => setActiveTab('gps')}
+              style={{
+                marginTop: 'auto',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                backgroundColor: applySeoGeotag ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                border: `1px solid ${applySeoGeotag ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title="Clique para configurar o GPS da foto"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                <MapPin size={15} color={applySeoGeotag ? '#34D399' : '#9CA3AF'} style={{ flexShrink: 0 }} />
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: applySeoGeotag ? '#34D399' : '#9CA3AF' }}>
+                    {applySeoGeotag ? 'GPS & Geo-tagging Ativo' : 'GPS Desativado'}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '2px' }}>
-                    Gravar coordenadas de {client.address?.locality || client.business_name} no arquivo
+                  <div style={{ fontSize: '0.68rem', color: '#6B7280', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {gpsCity || 'Local'} ({gpsLat ? parseFloat(gpsLat).toFixed(3) : '0'}, {gpsLng ? parseFloat(gpsLng).toFixed(3) : '0'})
                   </div>
                 </div>
-
-                <input
-                  type="checkbox"
-                  checked={applySeoGeotag}
-                  onChange={(e) => setApplySeoGeotag(e.target.checked)}
-                  style={{ accentColor: '#10B981', width: '16px', height: '16px', cursor: 'pointer' }}
-                />
               </div>
-            )}
+              <span style={{ fontSize: '0.7rem', color: '#60A5FA', fontWeight: 600 }}>Ajustar GPS</span>
+            </div>
           </div>
         </div>
 
