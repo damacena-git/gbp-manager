@@ -16,6 +16,7 @@ import { POPULAR_NICHES, CATEGORIES_DATABASE } from '@/lib/data/google-categorie
 import { getCoordinatesForCity, generateSeoFilename, generateSeoAltText, injectExifToDataUrl } from '@/lib/seo/photo-optimizer';
 import GooglePostModal from '@/components/posts/GooglePostModal';
 import ImageEditorModal from '@/components/media/ImageEditorModal';
+import { uploadMediaDirect } from '@/lib/supabase/client-upload';
 
 function Instagram({ size = 16, style, className }) {
   return (
@@ -1707,17 +1708,13 @@ export default function ClientDetailPage() {
 
       // If a new edited image file blob was created
       if (updatedMediaItem.file && updatedMediaItem.isEdited) {
-        const formData = new FormData();
-        formData.append('file', updatedMediaItem.file);
-        formData.append('folder', 'photos');
-
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadRes.ok && uploadData.url) {
-          finalUrl = uploadData.url;
+        try {
+          const uploaded = await uploadMediaDirect(updatedMediaItem.file, 'photos');
+          if (uploaded.url) {
+            finalUrl = uploaded.url;
+          }
+        } catch (uploadErr) {
+          console.warn('[handleSaveEditedPhoto] Direct upload failed, falling back:', uploadErr);
         }
       }
 

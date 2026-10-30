@@ -8,6 +8,7 @@ import {
   ExternalLink, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Loader2, Edit3, Save, Star, Crop
 } from 'lucide-react';
 import ImageEditorModal from '@/components/media/ImageEditorModal';
+import { uploadMediaDirect } from '@/lib/supabase/client-upload';
 
 /**
  * WhatsApp SVG icon
@@ -488,39 +489,22 @@ export default function GooglePostModal({
     setSubmitFeedback(null);
 
     try {
-      // 1. Process media: upload files to /api/upload to get public storage URLs and avoid large payloads
+      // 1. Process media: upload files directly to Supabase Storage via signed URL
+      // This completely bypasses Vercel's 4.5 MB payload limit for videos and photos (supports up to 75 MB)
       const processedMedia = [];
       for (let i = 0; i < mediaItems.length; i++) {
         const item = mediaItems[i];
         if (item.file) {
+          const isVid = item.format === 'VIDEO';
           setSubmitFeedback({
             type: 'info',
-            message: `Fazendo upload de mídia (${i + 1}/${mediaItems.length})...`,
-          });
-          const formData = new FormData();
-          formData.append('file', item.file);
-          formData.append('folder', 'posts');
-
-          const uploadRes = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
+            message: `Fazendo upload de ${isVid ? 'vídeo' : 'foto'} (${i + 1}/${mediaItems.length})...`,
           });
 
-          let uploadData = null;
-          try {
-            uploadData = await uploadRes.json();
-          } catch {
-            const errText = await uploadRes.text().catch(() => '');
-            throw new Error(`Falha no upload (${uploadRes.status}): ${errText || 'O arquivo de vídeo/imagem é muito grande para o servidor.'}`);
-          }
-
-          if (!uploadRes.ok || uploadData?.error) {
-            throw new Error(uploadData?.error || 'Falha ao fazer upload da imagem/vídeo');
-          }
-
+          const uploaded = await uploadMediaDirect(item.file, 'posts');
           processedMedia.push({
-            url: uploadData.url,
-            format: uploadData.format || item.format || 'PHOTO',
+            url: uploaded.url,
+            format: uploaded.format || item.format || (isVid ? 'VIDEO' : 'PHOTO'),
           });
         } else if (item.url) {
           processedMedia.push({
@@ -637,9 +621,16 @@ export default function GooglePostModal({
           body: JSON.stringify(updatePayload),
         });
 
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Erro ao atualizar postagem');
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          const errText = await res.text().catch(() => '');
+          throw new Error(`Erro ao atualizar postagem no servidor (${res.status}): ${errText || res.statusText || 'Resposta inválida'}`);
+        }
+
+        if (!res.ok || data?.error) {
+          throw new Error(data?.error || 'Erro ao atualizar postagem');
         }
 
         setSubmitFeedback({
@@ -684,9 +675,16 @@ export default function GooglePostModal({
           body: JSON.stringify(createPayload),
         });
 
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Erro ao processar postagem');
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          const errText = await res.text().catch(() => '');
+          throw new Error(`Erro ao salvar postagem no servidor (${res.status}): ${errText || res.statusText || 'Resposta inválida'}`);
+        }
+
+        if (!res.ok || data?.error) {
+          throw new Error(data?.error || 'Erro ao processar postagem');
         }
 
         setSubmitFeedback({
