@@ -15,6 +15,9 @@ export async function POST(request) {
     const {
       client_id,
       topic,
+      title,
+      offer_title,
+      event_title,
       tone,
       type,
       count = 1,
@@ -74,12 +77,15 @@ export async function POST(request) {
       localKeywords,
     };
 
+    const effectiveTitle = (title || offer_title || event_title || '').trim();
+    const effectiveTopic = (topic && topic.trim()) || effectiveTitle || (type === 'OFFER' ? 'Oferta especial de serviços' : type === 'EVENT' ? 'Evento especial' : 'Destaque de serviços e novidades');
+
     if (count > 1) {
       const posts = await generateBulkPosts(
         businessInfo,
-        topic || 'Atrair mais clientes e destacar serviços',
+        effectiveTopic,
         count,
-        tone || 'profissional',
+        tone || 'profissional, acolhedor e persuasivo',
         interval_days || 3,
         start_date
       );
@@ -88,9 +94,14 @@ export async function POST(request) {
 
     const generated = await generatePost(
       businessInfo,
-      topic || 'Destaque de serviços',
-      tone || 'profissional',
-      type || 'STANDARD'
+      effectiveTopic,
+      tone || 'profissional, acolhedor e persuasivo',
+      type || 'STANDARD',
+      {
+        title: effectiveTitle,
+        offerTitle: offer_title || (type === 'OFFER' ? effectiveTitle : ''),
+        eventTitle: event_title || (type === 'EVENT' ? effectiveTitle : ''),
+      }
     );
 
     return NextResponse.json({ success: true, generated });

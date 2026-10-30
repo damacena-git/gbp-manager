@@ -368,12 +368,34 @@ export default function GooglePostModal({
     }
   }
 
+  function handleToggleAIPrompt() {
+    if (!showAIPrompt) {
+      if (!aiTopicPrompt.trim()) {
+        if (postType === 'OFFER' && offerTitle.trim()) {
+          setAiTopicPrompt(offerTitle.trim());
+        } else if (postType === 'EVENT' && eventTitle.trim()) {
+          setAiTopicPrompt(eventTitle.trim());
+        } else if (description.trim() && description.length < 200) {
+          setAiTopicPrompt(description.trim());
+        }
+      }
+    }
+    setShowAIPrompt((prev) => !prev);
+  }
+
   // AI Generator helper
   async function generatePostTextWithAI() {
     if (!activeClient) {
       alert('Selecione um cliente primeiro.');
       return;
     }
+
+    const chosenTopic = (
+      aiTopicPrompt.trim() ||
+      (postType === 'OFFER' ? offerTitle.trim() : postType === 'EVENT' ? eventTitle.trim() : description.trim()) ||
+      'Destaque de novidades e serviços'
+    );
+
     setGeneratingAI(true);
     try {
       const res = await fetch('/api/posts/generate', {
@@ -381,19 +403,40 @@ export default function GooglePostModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_id: activeClient.id,
-          topic: aiTopicPrompt || (postType === 'OFFER' ? 'Oferta especial de serviços' : postType === 'EVENT' ? 'Evento especial' : 'Dicas de cuidados, novidades e destaque de serviços'),
-          tone: 'persuasivo',
+          topic: chosenTopic,
+          title: chosenTopic,
+          offer_title: offerTitle.trim() || (postType === 'OFFER' ? chosenTopic : undefined),
+          event_title: eventTitle.trim() || (postType === 'EVENT' ? chosenTopic : undefined),
+          tone: 'profissional, acolhedor e persuasivo',
           type: postType,
           neighborhoods: aiNeighborhoodsPrompt,
         }),
       });
       const data = await res.json();
       if (data.generated) {
-        const text = data.generated.content || data.generated;
-        setDescription(text);
-        if (data.generated.callToAction?.type && (buttonType === 'NONE' || !buttonType)) {
+        const gen = typeof data.generated === 'object' ? data.generated : { content: data.generated };
+        const text = gen.content || (typeof data.generated === 'string' ? data.generated : '');
+        if (text) {
+          setDescription(text);
+        }
+
+        // Auto-fill offer title if empty
+        if (postType === 'OFFER' && gen.offerTitle && !offerTitle) {
+          setOfferTitle(gen.offerTitle);
+        }
+        // Auto-fill offer terms if empty
+        if (postType === 'OFFER' && gen.offerTerms && !offerTerms) {
+          setOfferTerms(gen.offerTerms);
+          setShowOfferMoreDetails(true);
+        }
+        // Auto-fill event title if empty
+        if (postType === 'EVENT' && gen.eventTitle && !eventTitle) {
+          setEventTitle(gen.eventTitle);
+        }
+
+        if (gen.callToAction?.type && (buttonType === 'NONE' || !buttonType)) {
           setShowButtonOptions(true);
-          setButtonType(data.generated.callToAction.type);
+          setButtonType(gen.callToAction.type);
           if (!buttonUrl) {
             const wa = getClientWhatsAppUrl(activeClient);
             const web = getClientWebsiteUrl(activeClient);
@@ -1226,7 +1269,7 @@ export default function GooglePostModal({
 
                   <button
                     type="button"
-                    onClick={() => setShowAIPrompt(!showAIPrompt)}
+                    onClick={handleToggleAIPrompt}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -1260,7 +1303,7 @@ export default function GooglePostModal({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                       <span style={{ fontSize: '0.8125rem', color: '#DDD6FE', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Sparkles size={14} color="#A78BFA" /> Especialista em SEO Local (Post Completo & Aprofundado)
+                        <Sparkles size={14} color="#A78BFA" /> Gerador com IA · Diretrizes do Google
                       </span>
                       <span
                         style={{
@@ -1273,18 +1316,18 @@ export default function GooglePostModal({
                           fontWeight: 600,
                         }}
                       >
-                        Benefício + 3 Termos Técnicos + Contexto Local + CTA
+                        100% Fiel à sua Ideia · Anti-Rejeição GBP
                       </span>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#C4B5FD', marginBottom: '4px' }}>
-                          Tema ou Serviço Abordado:
+                          Ideia, Título ou Tema da Postagem: *
                         </label>
                         <input
                           type="text"
-                          placeholder="Ex: Remoção de calosidades, unha encravada, hidratação profunda..."
+                          placeholder="Ex: Desconto de 20% no primeiro atendimento, cuidados para o verão, novo horário..."
                           value={aiTopicPrompt}
                           onChange={(e) => setAiTopicPrompt(e.target.value)}
                           style={{
@@ -1306,7 +1349,7 @@ export default function GooglePostModal({
                         </label>
                         <input
                           type="text"
-                          placeholder="Ex: Sudoeste, Octogonal, Cruzeiro"
+                          placeholder="Ex: Sudoeste, Centro, Vila Nova..."
                           value={aiNeighborhoodsPrompt}
                           onChange={(e) => setAiNeighborhoodsPrompt(e.target.value)}
                           style={{
@@ -1325,7 +1368,7 @@ export default function GooglePostModal({
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
-                        💡 Cria um post rico (até 1.400 caracteres) com autoridade técnica, sem superficialidade.
+                        🛡️ Texto otimizado para Google Maps (350 a 700 caracteres), focado na sua ideia e sem dados de contato no texto.
                       </span>
                       <button
                         type="button"
@@ -1346,7 +1389,7 @@ export default function GooglePostModal({
                         }}
                       >
                         {generatingAI ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                        {generatingAI ? 'Criando Post Profundo...' : 'Gerar Post Completo com IA'}
+                        {generatingAI ? 'Criando Post com IA...' : 'Gerar Post com IA'}
                       </button>
                     </div>
                   </div>
