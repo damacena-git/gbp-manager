@@ -10,6 +10,8 @@
 
 Neste ciclo de desenvolvimento, foram solucionados problemas críticos de publicação e upload de vídeos, refinada a geração de posts via inteligência artificial conforme as diretrizes do Google Meu Negócio, e adicionado um seletor visual com mapa interativo para otimização de geolocalização (GPS) em fotos.
 
+Além disso, foi realizada a auditoria e o agendamento integral de todo o acervo de vídeos e fotos da pasta do cliente **Leveza do Pé | Podologia Sudoeste Brasília**.
+
 ---
 
 ## 2. Detalhamento Técnico das Atualizações
@@ -60,23 +62,30 @@ Neste ciclo de desenvolvimento, foram solucionados problemas críticos de public
 
 ---
 
-## 3. Histórico de Commits Recentes
+## 3. Cronograma Completo de Agendamento — Leveza do Pé (19 Posts)
 
-| Commit | Mensagem | Resumo |
-| :--- | :--- | :--- |
-| `a03a1c3` | `feat(media): add interactive Leaflet map picker with draggable pin for photo GPS optimization` | Novo componente de mapa Leaflet, busca de endereço, arrasto de pino e card GBP |
-| `4897d29` | `fix(upload): upload direto de videos e midias para Supabase Storage via signed URL` | Solução definitiva para erro 413 da Vercel com vídeos grandes |
-| `7048f6b` | `fix: alinhamento da geracao de posts com diretrizes Google e fidelidade ao tema/titulo` | Correção dos prompts de IA sem telefones/links e com foco no título |
-| `66e4557` | `fix: agendamento de posts com video, sync de descricao no Google e otimizacao GPS em fotos` | Ajustes de agendamento de posts e sincronização da descrição da ficha |
+Todo o acervo de materiais foi auditado, carregado no Supabase Storage e programado:
 
----
+| # | Data / Hora (BRT) | Tipo | Tema | CTA |
+| :-: | :--- | :---: | :--- | :--- |
+| 1 | **03/11/2026 10h** | VÍDEO | Psoríase na Unha | Saiba mais (WhatsApp) |
+| 2 | **05/11/2026 10h** | VÍDEO | Unha Encravada & Alívio da Dor | Saiba mais (WhatsApp) |
+| 3 | **09/11/2026 10h** | VÍDEO | Atendimento Podológico Humanizado | Saiba mais (WhatsApp) |
+| 4 | **11/11/2026 10h** | VÍDEO | Regeneração da Lâmina / Descolamento | Saiba mais (WhatsApp) |
+| 5 | **13/11/2026 10h** | VÍDEO | Estrutura & Tecnologia da Clínica | Saiba mais (WhatsApp) |
+| 6 | **16/11/2026 10h** | VÍDEO | Cauterização de Verruga Plantar (HPV) | Saiba mais (WhatsApp) |
+| 7 | **18/11/2026 10h** | CARROSSEL | Laserterapia na Podologia (5 fotos) | Saiba mais (WhatsApp) |
+| 8 | **20/11/2026 10h** | VÍDEO | Cuidados Preventivos com os Pés | Saiba mais (WhatsApp) |
+| 9 | **23/11/2026 10h** | VÍDEO | Higiene e Hidratação Podal | Saiba mais (WhatsApp) |
+| 10 | **25/11/2026 10h** | CARROSSEL | Espaço & Acolhimento no Sudoeste (5 fotos) | Saiba mais (WhatsApp) |
+| 11 | **27/11/2026 10h** | VÍDEO | Avaliação Podológica & Biossegurança | Saiba mais (WhatsApp) |
+| 12 | **30/11/2026 10h** | VÍDEO | Tratamento de Calosidades & Sobrecarga | Saiba mais (WhatsApp) |
+| 13 | **02/12/2026 10h** | VÍDEO | Fissuras & Calcanhares Rachados | Saiba mais (WhatsApp) |
+| 14 | **04/12/2026 10h** | VÍDEO | Cuidados com Pés Diabéticos | Saiba mais (WhatsApp) |
+| 15 | **07/12/2026 10h** | CARROSSEL | Procedimentos no Sudoeste (4 fotos) | Saiba mais (WhatsApp) |
+| 16 | **09/12/2026 10h** | VÍDEO | Corte Correto das Unhas dos Pés | Saiba mais (WhatsApp) |
+| 17 | **11/12/2026 10h** | VÍDEO | Calçados Confortáveis & Prevenção | Saiba mais (WhatsApp) |
+| 18 | **14/12/2026 10h** | CARROSSEL | Pés Renovados para Festas de Fim de Ano (6 fotos) | Saiba mais (WhatsApp) |
+| 19 | **16/12/2026 10h** | VÍDEO | Bastidores & Atendimento Dedicado | Saiba mais (WhatsApp) |
 
-## 4. Sugestões de Próximos Passos para Continuidade
-
-1. **Testes em Produção:**
-   - Realizar o agendamento de um post com vídeo pesado (> 5 MB) e verificar a publicação.
-   - Editar uma foto no painel de Mídias, arrastar o pino no mapa para um ponto exato e baixar a imagem processada para inspecionar os metadados EXIF via leitor de metadados.
-2. **Geocodificação Reversa Automática:**
-   - Opcionalmente, ao soltar o pino no mapa, disparar automaticamente uma consulta reversa no Nominatim para sugerir o nome do Bairro e Rua nos campos de metadados.
-3. **Múltiplas Fotos em Lote (Batch Geotag):**
-   - Permitir aplicar as mesmas coordenadas selecionadas no mapa para um conjunto de várias fotos de uma só vez.
+Todas as postagens contêm textos profissionais de 350 a 600 caracteres, menção geográfica estratégica (*Sudoeste, Edifício Lincoln Center, Brasília - DF*) e nenhum número de telefone ou link no corpo do texto, em estrita conformidade com as diretrizes do Google Business Profile.
