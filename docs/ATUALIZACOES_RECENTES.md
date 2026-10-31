@@ -2,7 +2,7 @@
 
 > **Data:** 31 de Outubro de 2026  
 > **Status:** Deploy em Produção (GitHub `master` e `main`)  
-> **Último Commit:** `a03a1c3`
+> **Último Commit:** `f9b3c3d`
 
 ---
 
@@ -10,7 +10,9 @@
 
 Neste ciclo de desenvolvimento, foram solucionados problemas críticos de publicação e upload de vídeos, refinada a geração de posts via inteligência artificial conforme as diretrizes do Google Meu Negócio, e adicionado um seletor visual com mapa interativo para otimização de geolocalização (GPS) em fotos.
 
-Além disso, foi realizada a auditoria e o agendamento integral de todo o acervo de vídeos e fotos da pasta do cliente **Leveza do Pé | Podologia Sudoeste Brasília**.
+Além disso, foi realizada a auditoria, renomeação para SEO e o agendamento integral de todo o acervo de vídeos e fotos de dois clientes-chave:
+1. **Leveza do Pé | Podologia Sudoeste Brasília** (19 postagens agendadas até 16/12/2026).
+2. **Podóloga em Votorantim | Claudia Rangel** (17 postagens agendadas até 09/12/2026).
 
 ---
 
@@ -62,30 +64,34 @@ Além disso, foi realizada a auditoria e o agendamento integral de todo o acervo
 
 ---
 
-## 3. Cronograma Completo de Agendamento — Leveza do Pé (19 Posts)
+## 3. Cronograma de Agendamento — Leveza do Pé (19 Posts)
 
-Todo o acervo de materiais foi auditado, carregado no Supabase Storage e programado:
+Total de 19 postagens cobrindo de **03/11 a 16/12/2026** (segundas, quartas e sextas às 10h BRT), com foco em procedimentos podológicos, vídeos institucionais e carrosséis temáticos no Sudoeste de Brasília.
 
-| # | Data / Hora (BRT) | Tipo | Tema | CTA |
+---
+
+## 4. Cronograma de Agendamento — Claudia Rangel Podóloga (17 Posts)
+
+Todos os 45 arquivos da pasta foram auditados, **renomeados no disco com palavras-chave de SEO Local** (*Votorantim, Sorocaba, Parque Bela Vista*), transferidos para o Supabase Storage e agendados:
+
+| # | Data / Hora (BRT) | Formato | Tema do Post | Botão de Ação (CTA) |
 | :-: | :--- | :---: | :--- | :--- |
-| 1 | **03/11/2026 10h** | VÍDEO | Psoríase na Unha | Saiba mais (WhatsApp) |
-| 2 | **05/11/2026 10h** | VÍDEO | Unha Encravada & Alívio da Dor | Saiba mais (WhatsApp) |
-| 3 | **09/11/2026 10h** | VÍDEO | Atendimento Podológico Humanizado | Saiba mais (WhatsApp) |
-| 4 | **11/11/2026 10h** | VÍDEO | Regeneração da Lâmina / Descolamento | Saiba mais (WhatsApp) |
-| 5 | **13/11/2026 10h** | VÍDEO | Estrutura & Tecnologia da Clínica | Saiba mais (WhatsApp) |
-| 6 | **16/11/2026 10h** | VÍDEO | Cauterização de Verruga Plantar (HPV) | Saiba mais (WhatsApp) |
-| 7 | **18/11/2026 10h** | CARROSSEL | Laserterapia na Podologia (5 fotos) | Saiba mais (WhatsApp) |
-| 8 | **20/11/2026 10h** | VÍDEO | Cuidados Preventivos com os Pés | Saiba mais (WhatsApp) |
-| 9 | **23/11/2026 10h** | VÍDEO | Higiene e Hidratação Podal | Saiba mais (WhatsApp) |
-| 10 | **25/11/2026 10h** | CARROSSEL | Espaço & Acolhimento no Sudoeste (5 fotos) | Saiba mais (WhatsApp) |
-| 11 | **27/11/2026 10h** | VÍDEO | Avaliação Podológica & Biossegurança | Saiba mais (WhatsApp) |
-| 12 | **30/11/2026 10h** | VÍDEO | Tratamento de Calosidades & Sobrecarga | Saiba mais (WhatsApp) |
-| 13 | **02/12/2026 10h** | VÍDEO | Fissuras & Calcanhares Rachados | Saiba mais (WhatsApp) |
-| 14 | **04/12/2026 10h** | VÍDEO | Cuidados com Pés Diabéticos | Saiba mais (WhatsApp) |
-| 15 | **07/12/2026 10h** | CARROSSEL | Procedimentos no Sudoeste (4 fotos) | Saiba mais (WhatsApp) |
-| 16 | **09/12/2026 10h** | VÍDEO | Corte Correto das Unhas dos Pés | Saiba mais (WhatsApp) |
-| 17 | **11/12/2026 10h** | VÍDEO | Calçados Confortáveis & Prevenção | Saiba mais (WhatsApp) |
-| 18 | **14/12/2026 10h** | CARROSSEL | Pés Renovados para Festas de Fim de Ano (6 fotos) | Saiba mais (WhatsApp) |
-| 19 | **16/12/2026 10h** | VÍDEO | Bastidores & Atendimento Dedicado | Saiba mais (WhatsApp) |
+| 1 | **02/11/2026 10h** | IMAGEM | Tratamento de Onicomicose | Saiba mais (WhatsApp) |
+| 2 | **04/11/2026 10h** | VÍDEO | Alívio Imediato de Unha Encravada | Saiba mais (WhatsApp) |
+| 3 | **06/11/2026 10h** | CARROSSEL | Tratamento de Onicomicose e Fungos *(4 fotos)* | Saiba mais (WhatsApp) |
+| 4 | **09/11/2026 10h** | VÍDEO | Cuidados com Pés Diabéticos | Saiba mais (WhatsApp) |
+| 5 | **11/11/2026 10h** | CARROSSEL | Conforto e Alívio da Pisada *(4 fotos)* | Saiba mais (WhatsApp) |
+| 6 | **13/11/2026 10h** | VÍDEO | Tratamento de Calosidades e Fissuras | Saiba mais (WhatsApp) |
+| 7 | **16/11/2026 10h** | CARROSSEL | Recuperação de Calcanhar Ressecado *(4 fotos)* | Saiba mais (WhatsApp) |
+| 8 | **18/11/2026 10h** | VÍDEO | Biossegurança e Esterilização em Autoclave | Saiba mais (WhatsApp) |
+| 9 | **20/11/2026 10h** | CARROSSEL | Regeneração e Correção de Unhas *(4 fotos)* | Saiba mais (WhatsApp) |
+| 10 | **23/11/2026 10h** | VÍDEO | Estrutura e Acolhimento no Parque Bela Vista | Saiba mais (WhatsApp) |
+| 11 | **25/11/2026 10h** | CARROSSEL | Autocuidado e Relaxamento Podal *(4 fotos)* | Saiba mais (WhatsApp) |
+| 12 | **27/11/2026 10h** | CARROSSEL | Podologia Preventiva para Toda a Família *(4 fotos)* | Saiba mais (WhatsApp) |
+| 13 | **30/11/2026 10h** | CARROSSEL | Saúde e Firmeza nos Passos *(3 fotos)* | Saiba mais (WhatsApp) |
+| 14 | **02/12/2026 10h** | CARROSSEL | Técnicas Avançadas de Tratamento Podal *(4 fotos)* | Saiba mais (WhatsApp) |
+| 15 | **04/12/2026 10h** | CARROSSEL | Alívio de Tensões e Dores nos Pés *(4 fotos)* | Saiba mais (WhatsApp) |
+| 16 | **07/12/2026 10h** | CARROSSEL | Resultados e Recuperação da Saúde das Unhas *(2 fotos)* | Saiba mais (WhatsApp) |
+| 17 | **09/12/2026 10h** | CARROSSEL | Pés Impecáveis para as Festas de Fim de Ano *(3 fotos)* | Saiba mais (WhatsApp) |
 
-Todas as postagens contêm textos profissionais de 350 a 600 caracteres, menção geográfica estratégica (*Sudoeste, Edifício Lincoln Center, Brasília - DF*) e nenhum número de telefone ou link no corpo do texto, em estrita conformidade com as diretrizes do Google Business Profile.
+Todas as postagens estão estritamente alinhadas às políticas do Google Meu Negócio (textos de 350 a 600 caracteres, zero links/telefones soltos no texto e CTA direto para o WhatsApp `(15) 99186-7581`).
