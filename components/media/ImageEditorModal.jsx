@@ -3,9 +3,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X, Crop, RotateCw, RotateCcw, FlipHorizontal, Sun, Contrast,
-  Sparkles, SlidersHorizontal, Check, Undo2, Maximize2, MapPin, Tag, FileText,
+  Sparkles, SlidersHorizontal, Check, Undo2, Maximize2, Minimize2, MapPin, Tag, FileText,
   Navigation, Compass, Crosshair, Globe, Info, CheckCircle2, ShieldCheck
 } from 'lucide-react';
+import GpsMapPicker from './GpsMapPicker';
 import {
   injectExifToDataUrl,
   getCoordinatesForCity,
@@ -67,6 +68,7 @@ export default function ImageEditorModal({
   const [gpsState, setGpsState] = useState('');
   const [gpsNeighborhood, setGpsNeighborhood] = useState('');
   const [includeExifTags, setIncludeExifTags] = useState(true);
+  const [expandGpsMap, setExpandGpsMap] = useState(false);
 
   const canvasRef = useRef(null);
   const imageObjRef = useRef(null);
@@ -246,6 +248,16 @@ export default function ImageEditorModal({
     setGpsLng(String(coords.lng));
   }
 
+  const handleMapCoordsChange = useCallback((newLat, newLng, addressDetails = null) => {
+    setGpsLat(newLat);
+    setGpsLng(newLng);
+    if (addressDetails) {
+      if (addressDetails.city) setGpsCity(addressDetails.city);
+      if (addressDetails.state) setGpsState(addressDetails.state);
+      if (addressDetails.neighborhood) setGpsNeighborhood(addressDetails.neighborhood);
+    }
+  }, []);
+
   async function handleSave() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -332,7 +344,7 @@ export default function ImageEditorModal({
       <div
         style={{
           width: '100%',
-          maxWidth: '1000px',
+          maxWidth: '1140px',
           maxHeight: '92vh',
           backgroundColor: '#0D1322',
           border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -402,7 +414,7 @@ export default function ImageEditorModal({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 390px',
+            gridTemplateColumns: '1fr 430px',
             flex: 1,
             overflow: 'hidden',
           }}
@@ -421,129 +433,202 @@ export default function ImageEditorModal({
               minHeight: '440px',
             }}
           >
-            {/* Guide overlay */}
-            <div
-              style={{
-                position: 'relative',
-                maxWidth: '100%',
-                maxHeight: '480px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <canvas
-                ref={canvasRef}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '480px',
-                  objectFit: 'contain',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
-              />
-            </div>
+            {activeTab === 'gps' && expandGpsMap ? (
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={16} color="#60A5FA" />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#F9FAFB' }}>
+                      Modo Mapa de Precisão (Expandido)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandGpsMap(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      color: '#E2E8F0',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Minimize2 size={13} /> Voltar à Prévia da Foto
+                  </button>
+                </div>
+                <div style={{ flex: 1, minHeight: '440px' }}>
+                  <GpsMapPicker
+                    lat={gpsLat}
+                    lng={gpsLng}
+                    onChangeCoords={handleMapCoordsChange}
+                    client={client}
+                    cityName={gpsCity}
+                    height="450px"
+                    isExpanded={true}
+                    onToggleExpand={() => setExpandGpsMap(false)}
+                    showGuide={false}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Guide overlay */}
+                <div
+                  style={{
+                    position: 'relative',
+                    maxWidth: '100%',
+                    maxHeight: '480px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '480px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  />
+                  {/* Floating GPS Badge when geotagging is enabled */}
+                  {applySeoGeotag && gpsLat && gpsLng && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        left: '12px',
+                        padding: '5px 12px',
+                        borderRadius: '20px',
+                        backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                        backdropFilter: 'blur(6px)',
+                        border: '1px solid rgba(52, 211, 153, 0.4)',
+                        color: '#34D399',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <MapPin size={12} color="#34D399" />
+                      <span>EXIF GPS: {parseFloat(gpsLat).toFixed(4)}, {parseFloat(gpsLng).toFixed(4)} ({gpsCity || 'Local'})</span>
+                    </div>
+                  )}
+                </div>
 
-            {/* Quick Canvas Toolbar below */}
-            <div
-              style={{
-                marginTop: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                padding: '6px 12px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <button
-                type="button"
-                onClick={handleRotateCcw}
-                title="Girar 90° à esquerda"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#D1D5DB',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.75rem',
-                }}
-              >
-                <RotateCcw size={15} /> 90°
-              </button>
+                {/* Quick Canvas Toolbar below */}
+                <div
+                  style={{
+                    marginTop: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    padding: '6px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleRotateCcw}
+                    title="Girar 90° à esquerda"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#D1D5DB',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <RotateCcw size={15} /> 90°
+                  </button>
 
-              <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
 
-              <button
-                type="button"
-                onClick={handleRotateCw}
-                title="Girar 90° à direita"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#D1D5DB',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.75rem',
-                }}
-              >
-                <RotateCw size={15} /> 90°
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleRotateCw}
+                    title="Girar 90° à direita"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#D1D5DB',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <RotateCw size={15} /> 90°
+                  </button>
 
-              <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
 
-              <button
-                type="button"
-                onClick={handleFlipH}
-                title="Espelhar Horizontalmente"
-                style={{
-                  background: flipH ? 'rgba(59, 130, 246, 0.2)' : 'none',
-                  border: 'none',
-                  color: flipH ? '#60A5FA' : '#D1D5DB',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.75rem',
-                }}
-              >
-                <FlipHorizontal size={15} /> Espelhar
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleFlipH}
+                    title="Espelhar Horizontalmente"
+                    style={{
+                      background: flipH ? 'rgba(59, 130, 246, 0.2)' : 'none',
+                      border: 'none',
+                      color: flipH ? '#60A5FA' : '#D1D5DB',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <FlipHorizontal size={15} /> Espelhar
+                  </button>
 
-              <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
 
-              <button
-                type="button"
-                onClick={handleReset}
-                title="Restaurar imagem original"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#9CA3AF',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.75rem',
-                }}
-              >
-                <Undo2 size={15} /> Resetar
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    title="Restaurar imagem original"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#9CA3AF',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <Undo2 size={15} /> Resetar
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Controls Panel (Right Column) */}
@@ -786,254 +871,189 @@ export default function ImageEditorModal({
               </div>
             )}
 
-            {/* TAB CONTENT: OTIMIZAÇÃO GPS & GEO-TAGGING */}
+            {/* TAB CONTENT: OTIMIZAÇÃO GPS & GEO-TAGGING COM MAPA INTERATIVO */}
             {activeTab === 'gps' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Header matching user reference image */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin size={14} /> Otimização GPS & Metadados
-                  </span>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', color: applySeoGeotag ? '#34D399' : '#9CA3AF', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={16} color="#8B5CF6" />
+                    <div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F9FAFB' }}>
+                        Geolocalização
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#9CA3AF', marginLeft: '6px' }}>
+                        — será gravada no EXIF de todas as fotos
+                      </span>
+                    </div>
+                  </div>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', color: applySeoGeotag ? '#34D399' : '#9CA3AF', fontWeight: 600 }}>
                     <input
                       type="checkbox"
                       checked={applySeoGeotag}
                       onChange={(e) => setApplySeoGeotag(e.target.checked)}
                       style={{ accentColor: '#10B981', width: '15px', height: '15px', cursor: 'pointer' }}
                     />
-                    {applySeoGeotag ? 'GPS Ativado' : 'GPS Desativado'}
+                    {applySeoGeotag ? 'EXIF Ativado' : 'EXIF Desativado'}
                   </label>
                 </div>
 
-                {/* Status card */}
-                <div
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    backgroundColor: applySeoGeotag ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.08)',
-                    border: `1px solid ${applySeoGeotag ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.25)'}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <Crosshair size={16} color={applySeoGeotag ? '#34D399' : '#EF4444'} />
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: applySeoGeotag ? '#6EE7B7' : '#FCA5A5' }}>
-                      {applySeoGeotag ? 'Pronto para Gravação no EXIF' : 'Geotagging Desativado'}
+                {/* Interactive Leaflet Map Picker Component */}
+                <GpsMapPicker
+                  lat={gpsLat}
+                  lng={gpsLng}
+                  onChangeCoords={handleMapCoordsChange}
+                  client={client}
+                  cityName={gpsCity}
+                  height="240px"
+                  isExpanded={expandGpsMap}
+                  onToggleExpand={() => setExpandGpsMap(!expandGpsMap)}
+                  showGuide={true}
+                />
+
+                {/* Additional Client & Regional SEO Details */}
+                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Dados do Negócio & Região
                     </span>
-                  </div>
-                  {applySeoGeotag ? (
-                    <div style={{ fontSize: '0.75rem', color: '#D1D5DB', lineHeight: '1.4' }}>
-                      <div><strong>Coordenadas:</strong> {gpsLat || '0'}, {gpsLng || '0'}</div>
-                      <div><strong>Local:</strong> {gpsNeighborhood ? `${gpsNeighborhood}, ` : ''}{gpsCity || 'Cidade não definida'} - {gpsState || 'BR'}</div>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
-                      Ative a opção acima para gravar as coordenadas geográficas na imagem.
-                    </div>
-                  )}
-                </div>
-
-                {/* Auto-detect button */}
-                {client && (
-                  <button
-                    type="button"
-                    onClick={handleDetectClientCoordinates}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                      color: '#60A5FA',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Navigation size={13} /> Sincronizar Coordenadas com a Ficha
-                  </button>
-                )}
-
-                {/* Coordinates Fields */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
-                      Latitude:
-                    </label>
-                    <input
-                      type="text"
-                      value={gpsLat}
-                      onChange={(e) => setGpsLat(e.target.value)}
-                      placeholder="-23.5412"
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                        color: '#F9FAFB',
-                        fontSize: '0.78rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
-                      Longitude:
-                    </label>
-                    <input
-                      type="text"
-                      value={gpsLng}
-                      onChange={(e) => setGpsLng(e.target.value)}
-                      placeholder="-47.4431"
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                        color: '#F9FAFB',
-                        fontSize: '0.78rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* City & State Fields */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
-                      Cidade / Município:
-                    </label>
-                    <input
-                      type="text"
-                      value={gpsCity}
-                      onChange={(e) => setGpsCity(e.target.value)}
-                      placeholder="Ex: Votorantim"
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                        color: '#F9FAFB',
-                        fontSize: '0.78rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
-                      Estado (UF):
-                    </label>
-                    <input
-                      type="text"
-                      value={gpsState}
-                      onChange={(e) => setGpsState(e.target.value.toUpperCase())}
-                      placeholder="SP"
-                      maxLength={2}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                        color: '#F9FAFB',
-                        fontSize: '0.78rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Bairro / Região */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
-                    Bairro / Área de Atendimento:
-                  </label>
-                  <input
-                    type="text"
-                    value={gpsNeighborhood}
-                    onChange={(e) => setGpsNeighborhood(e.target.value)}
-                    placeholder="Ex: Parque Bela Vista"
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                      color: '#F9FAFB',
-                      fontSize: '0.78rem',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                {/* Quick Presets */}
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px', fontWeight: 600 }}>
-                    Atalhos Rápidos de Cidades:
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                    {['Votorantim', 'Sorocaba', 'São Paulo', 'Campinas', 'Curitiba', 'Passo Fundo', 'Rio de Janeiro', 'Brasília'].map((cName) => (
+                    {client?.address && (
                       <button
-                        key={cName}
                         type="button"
-                        onClick={() => handleSelectCityPreset(cName)}
+                        onClick={handleDetectClientCoordinates}
                         style={{
-                          fontSize: '0.7rem',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                          color: '#D1D5DB',
+                          background: 'none',
+                          border: 'none',
+                          color: '#60A5FA',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: 0,
                         }}
                       >
-                        {cName}
+                        <Navigation size={11} /> Puxar do Perfil
                       </button>
-                    ))}
+                    )}
                   </div>
-                </div>
 
-                {/* Additional EXIF toggle */}
-                <div style={{ marginTop: '4px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.75rem', color: '#E2E8F0' }}>
+                  {/* City & State Fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                        Cidade / Município:
+                      </label>
+                      <input
+                        type="text"
+                        value={gpsCity}
+                        onChange={(e) => setGpsCity(e.target.value)}
+                        placeholder="Ex: Sorocaba"
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          color: '#F9FAFB',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                        Estado (UF):
+                      </label>
+                      <input
+                        type="text"
+                        value={gpsState}
+                        onChange={(e) => setGpsState(e.target.value.toUpperCase())}
+                        placeholder="SP"
+                        maxLength={2}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          color: '#F9FAFB',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bairro / Região */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', color: '#E2E8F0', fontWeight: 600, marginBottom: '4px' }}>
+                      Bairro / Região de Atendimento:
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={includeExifTags}
-                      onChange={(e) => setIncludeExifTags(e.target.checked)}
-                      style={{ accentColor: '#10B981', marginTop: '2px', cursor: 'pointer' }}
+                      type="text"
+                      value={gpsNeighborhood}
+                      onChange={(e) => setGpsNeighborhood(e.target.value)}
+                      placeholder="Ex: Centro / Região Metropolitana"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#F9FAFB',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                    <span>
-                      Injetar dados da empresa (<strong>{client?.business_name || 'Empresa'}</strong>), nicho e palavras-chave de SEO Local nos campos EXIF Artist e Copyright.
-                    </span>
-                  </label>
-                </div>
+                  </div>
 
-                {/* Explanatory callout */}
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    fontSize: '0.72rem',
-                    color: '#93C5FD',
-                    lineHeight: '1.4',
-                  }}
-                >
-                  💡 <strong>Por que otimizar o GPS da foto?</strong><br />
-                  O algoritmo do Google Meu Negócio lê as coordenadas GPS gravadas nos metadados da imagem no momento do envio. Fotos geolocalizadas aumentam o ranqueamento da empresa no mapa e comprovam atendimento presencial na região.
+                  {/* Quick City Presets */}
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#9CA3AF', marginBottom: '5px', fontWeight: 600 }}>
+                      Cidades Frequentes:
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      {['Votorantim', 'Sorocaba', 'São Paulo', 'Campinas', 'Curitiba', 'Passo Fundo', 'Rio de Janeiro', 'Brasília'].map((cName) => (
+                        <button
+                          key={cName}
+                          type="button"
+                          onClick={() => handleSelectCityPreset(cName)}
+                          style={{
+                            fontSize: '0.69rem',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            color: '#D1D5DB',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {cName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Additional EXIF Artist & Copyright toggle */}
+                  <div style={{ marginTop: '2px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.74rem', color: '#E2E8F0' }}>
+                      <input
+                        type="checkbox"
+                        checked={includeExifTags}
+                        onChange={(e) => setIncludeExifTags(e.target.checked)}
+                        style={{ accentColor: '#10B981', marginTop: '2px', cursor: 'pointer' }}
+                      />
+                      <span>
+                        Injetar dados da empresa (<strong>{client?.business_name || 'Empresa'}</strong>), nicho e palavras-chave de SEO Local nos campos EXIF Artist e Copyright.
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
