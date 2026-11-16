@@ -1,8 +1,24 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["gru1"],
-  "crons": [
-    { "path": "/api/cron?task=all", "schedule": "0 12 * * *" },
-    { "path": "/api/cron?task=sync_metrics", "schedule": "0 9 * * *" }
-  ]
+  "schedules": {
+    "publish-posts": {
+      "schedule": "*/15 * * * *",
+      "timezone": "America/Sao_Paulo",
+      "path": "/api/cron?task=publish_posts",
+      "requestMethod": "GET"
+    },
+    "daily-all": {
+      "schedule": "0 9 * * *",
+      "timezone": "America/Sao_Paulo",
+      "path": "/api/cron?task=all",
+      "requestMethod": "GET"
+    },
+    "sync-metrics": {
+      "schedule": "0 6 * * *",
+      "timezone": "America/Sao_Paulo",
+      "path": "/api/cron?task=sync_metrics",
+      "requestMethod": "GET"
+    }
+  }
 }
